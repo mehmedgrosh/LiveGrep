@@ -1,0 +1,85 @@
+<!-- static/index.html (Frontend) -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Silver Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        input, #results { width: 100%; padding: 8px; margin: 5px 0; }
+        #results { border: 1px solid #ccc; min-height: 300px; overflow-y: auto; }
+        .result-item { 
+            padding: 5px; 
+            border-bottom: 1px solid #eee; 
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .highlight { color: #d00; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Silver Search</h1>
+        <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
+        <input type="text" id="pattern" placeholder="Search pattern (supports regex)">
+        <div id="results"></div>
+    </div>
+
+    <script>
+        let abortController = null;
+        const debounceDelay = 300;
+
+        async function performSearch() {
+            const path = document.getElementById('directory').value;
+            const pattern = document.getElementById('pattern').value;
+            const resultsDiv = document.getElementById('results');
+            
+            if (!path || !pattern) {
+                resultsDiv.innerHTML = '';
+                return;
+            }
+
+            if (abortController) abortController.abort();
+            abortController = new AbortController();
+
+            try {
+                const response = await fetch(
+                    `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`,
+                    { signal: abortController.signal }
+                );
+                
+                const data = await response.json();
+                resultsDiv.innerHTML = data.results
+                    .map(line => {
+                        // Simple highlight matching text
+                        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                        const highlighted = line.replace(
+                            new RegExp(`(${escapedPattern})`, 'gi'),
+                            '<span class="highlight">$1</span>'
+                        );
+                        return `<div class="result-item">${highlighted}</div>`;
+                    })
+                    .join('');
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    resultsDiv.innerHTML = `Error: ${err.message}`;
+                }
+            }
+        }
+
+        // Optimized debounce with request cancellation
+        let timeout;
+        function debouncedSearch() {
+            clearTimeout(timeout);
+            if (abortController) abortController.abort();
+            timeout = setTimeout(performSearch, debounceDelay);
+        }
+
+        // Event listeners
+        document.getElementById('pattern').addEventListener('input', debouncedSearch);
+        document.getElementById('directory').addEventListener('input', debouncedSearch);
+    </script>
+</body>
+</html>
