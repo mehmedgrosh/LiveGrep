@@ -31,7 +31,7 @@
         let abortController = null;
         const debounceDelay = 300;
 
-        async function performSearch() {
+        async function performSearch(limit = 10) {
             const path = document.getElementById('directory').value;
             const pattern = document.getElementById('pattern').value;
             const resultsDiv = document.getElementById('results');
@@ -46,11 +46,15 @@
 
             try {
                 const response = await fetch(
-                    `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`,
+                    `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
                     { signal: abortController.signal }
                 );
                 
                 const data = await response.json();
+                if (!data.results) {
+                    resultsDiv.innerHTML = 'No results found or error in response.';
+                    return;
+                }
                 resultsDiv.innerHTML = data.results
                     .map(line => {
                         // Simple highlight matching text
@@ -74,12 +78,21 @@
         function debouncedSearch() {
             clearTimeout(timeout);
             if (abortController) abortController.abort();
-            timeout = setTimeout(performSearch, debounceDelay);
+            timeout = setTimeout(() => performSearch(50), debounceDelay);
         }
 
         // Event listeners
         document.getElementById('pattern').addEventListener('input', debouncedSearch);
         document.getElementById('directory').addEventListener('input', debouncedSearch);
+
+        // Full search on ENTER
+        document.getElementById('pattern').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (abortController) abortController.abort();
+                performSearch(0); // 0 means unlimited
+            }
+        });
     </script>
 </body>
 </html>

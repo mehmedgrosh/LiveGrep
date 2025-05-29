@@ -1,7 +1,8 @@
 # main.py (Backend)
 import os
 import asyncio
-from fastapi import FastAPI, HTTPException
+from typing import Optional
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 
@@ -15,18 +16,28 @@ async def read_root():
 
 
 @app.get("/search")
-async def search_files(path: str, pattern: str):
+async def search_files(
+    path: str,
+    pattern: str,
+    limit: Optional[int] = Query(10, description="Max results to return, 0 for unlimited")
+):
     if not os.path.isabs(path) or not os.path.exists(path):
         raise HTTPException(status_code=400, detail="Invalid directory path")
 
     try:
-        proc = await asyncio.create_subprocess_exec(
+        ag_args = [
             "ag",
-            "--numbers",      # Show line numbers
-            "--nogroup",      # Show individual matches
-            "--nocolor",      # Disable color output
+            "--numbers",
+            "--nogroup",
+            "--nocolor",
             "--smart-case",
-            pattern,
+        ]
+        if limit and limit > 0:
+            ag_args += [f"--max-count={limit}"]
+        ag_args.append(pattern)
+
+        proc = await asyncio.create_subprocess_exec(
+            *ag_args,
             cwd=path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
