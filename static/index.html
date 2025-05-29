@@ -1,4 +1,4 @@
-<!-- static/index.html (Frontend) -->
+<!-- static/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -17,21 +17,25 @@
             text-overflow: ellipsis;
         }
         .highlight { color: #d00; font-weight: bold; }
+        .info { color: #666; font-style: italic; padding: 5px; }
+        .error { color: #d00; padding: 5px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Silver Search</h1>
         <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
-        <input type="text" id="pattern" placeholder="Search pattern (supports regex)">
+        <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
         <div id="results"></div>
     </div>
 
     <script>
         let abortController = null;
+        let currentSearchType = 'quick';
         const debounceDelay = 300;
+        const resultLimit = 50;
 
-        async function performSearch(limit = 10) {
+        async function performSearch(isFullSearch = false) {
             const path = document.getElementById('directory').value;
             const pattern = document.getElementById('pattern').value;
             const resultsDiv = document.getElementById('results');
@@ -43,54 +47,81 @@
 
             if (abortController) abortController.abort();
             abortController = new AbortController();
-
+            
+            currentSearchType = isFullSearch ? 'full' : 'quick';
+            resultsDiv.innerHTML = '<div class="info">Searching... (press Enter for full results)</div>';
+            
             try {
+                const limit = isFullSearch ? 0 : resultLimit;
                 const response = await fetch(
                     `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
                     { signal: abortController.signal }
                 );
                 
-                const data = await response.json();
-                if (!data.results) {
-                    resultsDiv.innerHTML = 'No results found or error in response.';
-                    return;
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `Server error: ${response.status}`);
                 }
-                resultsDiv.innerHTML = data.results
-                    .map(line => {
-                        // Simple highlight matching text
-                        const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                        const highlighted = line.replace(
-                            new RegExp(`(${escapedPattern})`, 'gi'),
-                            '<span class="highlight">$1</span>'
-                        );
-                        return `<div class="result-item">${highlighted}</div>`;
-                    })
-                    .join('');
+                
+                const data = await response.json();
+                
+                // Ensure we have results array
+                if (!data.results || !Array.isArray(data.results)) {
+                    throw new Error("Invalid response format from server");
+                }
+                
+                displayResults(data);
             } catch (err) {
                 if (err.name !== 'AbortError') {
-                    resultsDiv.innerHTML = `Error: ${err.message}`;
+                    console.error('Search error:', err);
+                    resultsDiv.innerHTML = `<div class="error">${err.message}</div>`;
                 }
             }
         }
+        
+        function displayResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const pattern = document.getElementById('pattern').value;
+            
+            if (!data.results || data.results.length === 0) {
+                resultsDiv.innerHTML = '<div class="info">No results found</div>';
+                return;
+            }
+            
+            let content = '';
+            const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(${escapedPattern})`, 'gi');
+            
+            data.results.forEach(line => {
+                const highlighted = line.replace(regex, '<span class="highlight">$1</span>');
+                content += `<div class="result-item">${highlighted}</div>`;
+            });
+            
+            if (data.limited && currentSearchType === 'quick') {
+                content += `<div class="info">Showing first ${resultLimit} results. Press Enter for full search.</div>`;
+            } else if (currentSearchType === 'full') {
+                content += `<div class="info">Showing all ${data.results.length} results</div>`;
+            }
+            
+            resultsDiv.innerHTML = content;
+        }
 
-        // Optimized debounce with request cancellation
+        // Debounce function
         let timeout;
         function debouncedSearch() {
             clearTimeout(timeout);
-            if (abortController) abortController.abort();
-            timeout = setTimeout(() => performSearch(50), debounceDelay);
+            timeout = setTimeout(() => performSearch(false), debounceDelay);
         }
 
         // Event listeners
         document.getElementById('pattern').addEventListener('input', debouncedSearch);
         document.getElementById('directory').addEventListener('input', debouncedSearch);
-
-        // Full search on ENTER
-        document.getElementById('pattern').addEventListener('keydown', function(e) {
+        
+        // Enter key for full search
+        document.getElementById('pattern').addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
-                e.preventDefault();
-                if (abortController) abortController.abort();
-                performSearch(0); // 0 means unlimited
+                clearTimeout(timeout);
+                performSearch(true);
             }
         });
     </script>
