@@ -8,9 +8,11 @@ from fastapi.responses import HTMLResponse, JSONResponse
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     return HTMLResponse(open("static/index.html").read())
+
 
 @app.get("/search")
 async def search_files(path: str, pattern: str, limit: int = 50):
@@ -30,7 +32,7 @@ async def search_files(path: str, pattern: str, limit: int = 50):
             "--smart-case",
             pattern
         ]
-        
+
         # Start the process
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -38,7 +40,7 @@ async def search_files(path: str, pattern: str, limit: int = 50):
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        
+
         # Read output line by line with limit
         results = []
         count = 0
@@ -48,7 +50,7 @@ async def search_files(path: str, pattern: str, limit: int = 50):
                 break
             results.append(line.decode().strip())
             count += 1
-        
+
         # Check if we have more results than the limit
         limited = False
         if limit > 0 and count == limit:
@@ -56,7 +58,7 @@ async def search_files(path: str, pattern: str, limit: int = 50):
             line = await proc.stdout.readline()
             if line:
                 limited = True
-        
+
         # Terminate the process if it's still running
         if proc.returncode is None:
             try:
@@ -67,7 +69,7 @@ async def search_files(path: str, pattern: str, limit: int = 50):
             except:
                 pass
             await proc.wait()
-        
+
         return {
             "results": results,
             "limited": limited
