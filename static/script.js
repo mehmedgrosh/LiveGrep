@@ -208,7 +208,42 @@ function getPrismLanguage(fileType) {
   return languageMap[fileType] || "text"
 }
 
-function displayFileContentInModal(data) {
+// Wait for Prism to be fully loaded
+function waitForPrism() {
+  return new Promise((resolve) => {
+    if (window.Prism && window.Prism.languages) {
+      resolve()
+    } else {
+      setTimeout(() => waitForPrism().then(resolve), 50)
+    }
+  })
+}
+
+// Enhanced syntax highlighting with proper loading checks
+async function applySyntaxHighlighting(container, language) {
+  await waitForPrism()
+
+  // Ensure the specific language is loaded
+  if (language === "c" && !window.Prism.languages.c) {
+    console.warn("C language not loaded for Prism")
+    return false
+  }
+
+  if (language === "cpp" && !window.Prism.languages.cpp) {
+    console.warn("C++ language not loaded for Prism")
+    return false
+  }
+
+  try {
+    window.Prism.highlightAllUnder(container)
+    return true
+  } catch (error) {
+    console.error("Error applying syntax highlighting:", error)
+    return false
+  }
+}
+
+async function displayFileContentInModal(data) {
   const marked = window.marked // Declare marked variable
   const Prism = window.Prism // Declare Prism variable
 
@@ -226,8 +261,8 @@ function displayFileContentInModal(data) {
     const tempContainer = document.createElement("div")
     tempContainer.innerHTML = `<pre><code class="language-${prismLanguage}">${escapeHtml(codeContent)}</code></pre>`
 
-    // Apply Prism highlighting
-    Prism.highlightAllUnder(tempContainer)
+    // Apply Prism highlighting with proper loading check
+    const highlightingSuccess = await applySyntaxHighlighting(tempContainer, prismLanguage)
 
     // Get the highlighted HTML
     const highlightedCode = tempContainer.querySelector("code").innerHTML
