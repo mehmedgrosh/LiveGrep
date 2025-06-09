@@ -12,12 +12,9 @@
         }
         .container { 
             width: 90vw;
-            max-width: none;
+            max-width: none; /* Remove max-width constraint to allow full scaling */
             margin: 0 auto; 
             padding: 20px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
             height: 100vh;
             box-sizing: border-box;
         }
@@ -28,15 +25,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-        }
-        .content-panel {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+            height: 100%;
         }
         h1 { 
             margin: 0 0 20px 0; 
@@ -110,29 +99,114 @@
             border-radius: 4px;
             margin: 10px 0;
         }
-        .content-header {
-            border-bottom: 2px solid #e1e5e9;
-            padding-bottom: 10px;
-            margin-bottom: 15px;
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
         }
-        .content-title {
-            font-size: 16px;
+        
+        .modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 85vw;
+            height: 80vh;
+            max-width: none; /* Remove max-width constraint to allow full scaling */
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .modal-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .modal-title {
+            font-size: 18px;
             font-weight: 600;
             color: #333;
             margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
-        .content-subtitle {
-            font-size: 12px;
+        
+        .modal-file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .file-type-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .line-indicator {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
             color: #666;
-            margin: 4px 0 0 0;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
         }
-        .file-content {
+        
+        .modal-close:hover {
+            background: #e1e5e9;
+            color: #333;
+        }
+        
+        .modal-body {
             flex: 1;
             overflow: auto;
             font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
             font-size: 13px;
             line-height: 1.5;
         }
+        
         .code-line {
             display: flex;
             padding: 2px 0;
@@ -144,20 +218,26 @@
         }
         .code-line-number {
             color: #999;
-            width: 50px;
+            width: 60px;
             text-align: right;
-            padding-right: 12px;
+            padding-right: 16px;
+            padding-left: 16px;
             user-select: none;
             flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #e1e5e9;
         }
         .code-line-content {
             flex: 1;
             white-space: pre;
             overflow-x: auto;
+            padding-left: 16px;
+            padding-right: 16px;
         }
         .markdown-content {
             line-height: 1.6;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
         }
         .markdown-content h1, .markdown-content h2, .markdown-content h3 {
             color: #333;
@@ -182,6 +262,23 @@
             color: #666;
         }
         
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideIn {
+            from { 
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to { 
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+        
         /* Prism.js customizations */
         pre[class*="language-"] {
             margin: 0;
@@ -193,17 +290,27 @@
             font-size: 13px;
         }
 
+        /* Responsive breakpoints - use more screen real estate on larger screens */
+        @media (min-width: 1440px) {
+            .container {
+                width: 95vw; /* Use more width on larger screens */
+            }
+        }
+
+        @media (min-width: 1920px) {
+            .container {
+                width: 98vw; /* Use almost full width on very large screens */
+            }
+        }
+
         @media (max-width: 1024px) {
             .container {
                 width: 95vw;
-                grid-template-columns: 1fr;
-                grid-template-rows: 1fr 1fr;
-                height: auto;
-                min-height: 100vh;
             }
             
-            .search-panel, .content-panel {
-                min-height: 400px;
+            .modal-content {
+                width: 95vw;
+                height: 90vh;
             }
         }
 
@@ -211,7 +318,11 @@
             .container {
                 width: 98vw;
                 padding: 10px;
-                gap: 10px;
+            }
+            
+            .modal-content {
+                width: 98vw;
+                height: 95vh;
             }
         }
     </style>
@@ -224,14 +335,23 @@
             <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
             <div id="results"></div>
         </div>
-        
-        <div class="content-panel">
-            <div class="content-header">
-                <h2 class="content-title">File Content</h2>
-                <p class="content-subtitle">Click on a search result to view file context</p>
+    </div>
+
+    <!-- Modal for file content -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <div class="modal-file-info">
+                        <span id="modal-file-name">File Content</span>
+                        <span id="modal-file-type-badge" class="file-type-badge" style="display: none;">TEXT</span>
+                        <span id="modal-line-indicator" class="line-indicator" style="display: none;">Line 1</span>
+                    </div>
+                </div>
+                <button id="modal-close" class="modal-close" title="Close (ESC)">×</button>
             </div>
-            <div id="file-content" class="file-content">
-                <div class="info">Select a search result to view file content</div>
+            <div id="modal-body" class="modal-body">
+                <div class="loading">Loading file content...</div>
             </div>
         </div>
     </div>
@@ -249,244 +369,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     
-    <script>
-        let abortController = null;
-        let currentSearchType = 'quick';
-        const debounceDelay = 300;
-        const resultLimit = 50;
-        let selectedResult = null;
-
-        async function performSearch(isFullSearch = false) {
-            const path = document.getElementById('directory').value;
-            const pattern = document.getElementById('pattern').value;
-            const resultsDiv = document.getElementById('results');
-            
-            if (!path || !pattern) {
-                resultsDiv.innerHTML = '';
-                return;
-            }
-
-            if (abortController) abortController.abort();
-            abortController = new AbortController();
-            
-            currentSearchType = isFullSearch ? 'full' : 'quick';
-            resultsDiv.innerHTML = '<div class="info">Searching... (press Enter for full results)</div>';
-            
-            try {
-                const limit = isFullSearch ? 0 : resultLimit;
-                const response = await fetch(
-                    `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`,
-                    { signal: abortController.signal }
-                );
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || `Server error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                if (!data.results || !Array.isArray(data.results)) {
-                    throw new Error("Invalid response format from server");
-                }
-                
-                displayResults(data);
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Search error:', err);
-                    resultsDiv.innerHTML = `<div class="error">${err.message}</div>`;
-                }
-            }
-        }
-        
-        function parseSearchResult(line) {
-            // Parse ag output format: filename:line_number:content
-            const match = line.match(/^([^:]+):(\d+):(.*)$/);
-            if (match) {
-                return {
-                    filePath: match[1],
-                    lineNumber: parseInt(match[2]),
-                    content: match[3]
-                };
-            }
-            return null;
-        }
-        
-        function displayResults(data) {
-            const resultsDiv = document.getElementById('results');
-            const pattern = document.getElementById('pattern').value;
-            
-            if (!data.results || data.results.length === 0) {
-                resultsDiv.innerHTML = '<div class="info">No results found</div>';
-                return;
-            }
-            
-            let content = '';
-            const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedPattern})`, 'gi');
-            
-            data.results.forEach((line, index) => {
-                const parsed = parseSearchResult(line);
-                if (parsed) {
-                    const highlighted = parsed.content.replace(regex, '<span class="highlight">$1</span>');
-                    content += `
-                        <div class="result-item" data-index="${index}" data-file="${parsed.filePath}" data-line="${parsed.lineNumber}">
-                            <div class="file-path">${parsed.filePath}</div>
-                            <span class="line-number">${parsed.lineNumber}:</span>${highlighted}
-                        </div>
-                    `;
-                } else {
-                    // Fallback for lines that don't match expected format
-                    const highlighted = line.replace(regex, '<span class="highlight">$1</span>');
-                    content += `<div class="result-item">${highlighted}</div>`;
-                }
-            });
-            
-            if (data.limited && currentSearchType === 'quick') {
-                content += `<div class="info">Showing first ${resultLimit} results. Press Enter for full search.</div>`;
-            } else if (currentSearchType === 'full') {
-                content += `<div class="info">Showing all ${data.results.length} results</div>`;
-            }
-            
-            resultsDiv.innerHTML = content;
-            
-            // Add click handlers to result items
-            document.querySelectorAll('.result-item[data-file]').forEach(item => {
-                item.addEventListener('click', () => {
-                    // Remove previous selection
-                    if (selectedResult) {
-                        selectedResult.classList.remove('selected');
-                    }
-                    
-                    // Select current item
-                    item.classList.add('selected');
-                    selectedResult = item;
-                    
-                    // Load file content
-                    const filePath = item.dataset.file;
-                    const lineNumber = parseInt(item.dataset.line);
-                    const basePath = document.getElementById('directory').value;
-                    
-                    loadFileContent(filePath, lineNumber);
-                });
-            });
-        }
-
-        async function loadFileContent(filePath, lineNumber) {
-            const contentDiv = document.getElementById('file-content');
-            const headerTitle = document.querySelector('.content-title');
-            const headerSubtitle = document.querySelector('.content-subtitle');
-            const basePath = document.getElementById('directory').value;
-            
-            // Update header
-            headerTitle.textContent = filePath.split('/').pop();
-            headerSubtitle.textContent = `${filePath} (line ${lineNumber})`;
-            
-            // Show loading
-            contentDiv.innerHTML = '<div class="loading">Loading file content...</div>';
-            
-            try {
-                const response = await fetch(
-                    `/file-content?file_path=${encodeURIComponent(filePath)}&line_number=${lineNumber}&context_lines=15&base_path=${encodeURIComponent(basePath)}`
-                );
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || `Server error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                displayFileContent(data);
-                
-            } catch (err) {
-                console.error('Error loading file content:', err);
-                contentDiv.innerHTML = `<div class="error">Error loading file: ${err.message}</div>`;
-            }
-        }
-        
-        // Map file types to Prism language identifiers
-        function getPrismLanguage(fileType) {
-            const languageMap = {
-                'c': 'c',
-                'cpp': 'cpp',
-                'python': 'python',
-                'javascript': 'javascript',
-                'html': 'markup',
-                'css': 'css',
-                'json': 'json',
-                'markdown': 'markdown',
-                'text': 'text'
-            };
-            
-            return languageMap[fileType] || 'text';
-        }
-        
-        function displayFileContent(data) {
-            const contentDiv = document.getElementById('file-content');
-            
-            if (data.file_type === 'markdown') {
-                // Render markdown
-                const fullContent = data.context.map(line => line.content).join('\n');
-                const htmlContent = marked.parse(fullContent);
-                contentDiv.innerHTML = `<div class="markdown-content">${htmlContent}</div>`;
-            } else {
-                // For code files, first create a pre>code element for Prism
-                const prismLanguage = getPrismLanguage(data.file_type);
-                const codeContent = data.context.map(line => line.content).join('\n');
-                
-                // Create a temporary container for syntax highlighting
-                const tempContainer = document.createElement('div');
-                tempContainer.innerHTML = `<pre><code class="language-${prismLanguage}">${escapeHtml(codeContent)}</code></pre>`;
-                
-                // Apply Prism highlighting
-                Prism.highlightAllUnder(tempContainer);
-                
-                // Get the highlighted HTML
-                const highlightedCode = tempContainer.querySelector('code').innerHTML;
-                const highlightedLines = highlightedCode.split('\n');
-                
-                // Build the final display with line numbers and highlighting
-                let content = '';
-                data.context.forEach((line, index) => {
-                    const lineClass = line.is_match ? 'code-line highlight-line' : 'code-line';
-                    const highlightedContent = highlightedLines[index] || escapeHtml(line.content);
-                    
-                    content += `
-                        <div class="${lineClass}">
-                            <div class="code-line-number">${line.line_number}</div>
-                            <div class="code-line-content">${highlightedContent}</div>
-                        </div>
-                    `;
-                });
-                
-                contentDiv.innerHTML = content;
-            }
-        }
-        
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Debounce function
-        let timeout;
-        function debouncedSearch() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => performSearch(false), debounceDelay);
-        }
-
-        // Event listeners
-        document.getElementById('pattern').addEventListener('input', debouncedSearch);
-        document.getElementById('directory').addEventListener('input', debouncedSearch);
-        
-        // Enter key for full search
-        document.getElementById('pattern').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(timeout);
-                performSearch(true);
-            }
-        });
-    </script>
+    <!-- Load our script file -->
+    <script src="/static/script.js"></script>
 </body>
 </html>
