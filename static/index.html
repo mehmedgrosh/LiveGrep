@@ -1,39 +1,260 @@
-<!-- static/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Silver Search</title>
+    <title>LiveGrep - Code Search</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        input, #results { width: 100%; padding: 8px; margin: 5px 0; }
-        #results { border: 1px solid #ccc; min-height: 300px; overflow-y: auto; }
-        .result-item { 
-            padding: 5px; 
-            border-bottom: 1px solid #eee; 
-            font-family: monospace;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            margin: 0; 
+            background: #f5f5f5;
         }
-        .highlight { color: #d00; font-weight: bold; }
-        .info { color: #666; font-style: italic; padding: 5px; }
-        .error { color: #d00; padding: 5px; }
+        .container { 
+            width: 90vw;
+            max-width: none;
+            margin: 0 auto; 
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .search-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .content-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        h1 { 
+            margin: 0 0 20px 0; 
+            color: #333;
+            font-size: 24px;
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin: 8px 0; 
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        #results { 
+            flex: 1;
+            border: 2px solid #e1e5e9; 
+            border-radius: 6px;
+            overflow-y: auto; 
+            margin-top: 10px;
+        }
+        .result-item { 
+            padding: 12px; 
+            border-bottom: 1px solid #eee; 
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            line-height: 1.4;
+        }
+        .result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .file-path {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .line-number {
+            color: #999;
+            margin-right: 8px;
+        }
+        .highlight { 
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        .info { 
+            color: #666; 
+            font-style: italic; 
+            padding: 12px; 
+            text-align: center;
+        }
+        .error { 
+            color: #d32f2f; 
+            padding: 12px; 
+            background: #ffebee;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .content-header {
+            border-bottom: 2px solid #e1e5e9;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .content-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+        .content-subtitle {
+            font-size: 12px;
+            color: #666;
+            margin: 4px 0 0 0;
+        }
+        .file-content {
+            flex: 1;
+            overflow: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        .code-line {
+            display: flex;
+            padding: 2px 0;
+            border-left: 4px solid transparent;
+        }
+        .code-line.highlight-line {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .code-line-number {
+            color: #999;
+            width: 50px;
+            text-align: right;
+            padding-right: 12px;
+            user-select: none;
+            flex-shrink: 0;
+        }
+        .code-line-content {
+            flex: 1;
+            white-space: pre;
+            overflow-x: auto;
+        }
+        .markdown-content {
+            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: #333;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        .markdown-content code {
+            background: #f6f8fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        }
+        .markdown-content pre {
+            background: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        /* Prism.js customizations */
+        pre[class*="language-"] {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 13px;
+        }
+        code[class*="language-"] {
+            font-size: 13px;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                width: 95vw;
+                grid-template-columns: 1fr;
+                grid-template-rows: 1fr 1fr;
+                height: auto;
+                min-height: 100vh;
+            }
+            
+            .search-panel, .content-panel {
+                min-height: 400px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 98vw;
+                padding: 10px;
+                gap: 10px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Silver Search</h1>
-        <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
-        <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
-        <div id="results"></div>
+        <div class="search-panel">
+            <h1>LiveGrep</h1>
+            <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
+            <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
+            <div id="results"></div>
+        </div>
+        
+        <div class="content-panel">
+            <div class="content-header">
+                <h2 class="content-title">File Content</h2>
+                <p class="content-subtitle">Click on a search result to view file context</p>
+            </div>
+            <div id="file-content" class="file-content">
+                <div class="info">Select a search result to view file content</div>
+            </div>
+        </div>
     </div>
 
+    <!-- Load Prism.js core and required languages explicitly -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    
     <script>
         let abortController = null;
         let currentSearchType = 'quick';
         const debounceDelay = 300;
         const resultLimit = 50;
+        let selectedResult = null;
 
         async function performSearch(isFullSearch = false) {
             const path = document.getElementById('directory').value;
@@ -65,7 +286,6 @@
                 
                 const data = await response.json();
                 
-                // Ensure we have results array
                 if (!data.results || !Array.isArray(data.results)) {
                     throw new Error("Invalid response format from server");
                 }
@@ -77,6 +297,19 @@
                     resultsDiv.innerHTML = `<div class="error">${err.message}</div>`;
                 }
             }
+        }
+        
+        function parseSearchResult(line) {
+            // Parse ag output format: filename:line_number:content
+            const match = line.match(/^([^:]+):(\d+):(.*)$/);
+            if (match) {
+                return {
+                    filePath: match[1],
+                    lineNumber: parseInt(match[2]),
+                    content: match[3]
+                };
+            }
+            return null;
         }
         
         function displayResults(data) {
@@ -92,9 +325,21 @@
             const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const regex = new RegExp(`(${escapedPattern})`, 'gi');
             
-            data.results.forEach(line => {
-                const highlighted = line.replace(regex, '<span class="highlight">$1</span>');
-                content += `<div class="result-item">${highlighted}</div>`;
+            data.results.forEach((line, index) => {
+                const parsed = parseSearchResult(line);
+                if (parsed) {
+                    const highlighted = parsed.content.replace(regex, '<span class="highlight">$1</span>');
+                    content += `
+                        <div class="result-item" data-index="${index}" data-file="${parsed.filePath}" data-line="${parsed.lineNumber}">
+                            <div class="file-path">${parsed.filePath}</div>
+                            <span class="line-number">${parsed.lineNumber}:</span>${highlighted}
+                        </div>
+                    `;
+                } else {
+                    // Fallback for lines that don't match expected format
+                    const highlighted = line.replace(regex, '<span class="highlight">$1</span>');
+                    content += `<div class="result-item">${highlighted}</div>`;
+                }
             });
             
             if (data.limited && currentSearchType === 'quick') {
@@ -104,6 +349,124 @@
             }
             
             resultsDiv.innerHTML = content;
+            
+            // Add click handlers to result items
+            document.querySelectorAll('.result-item[data-file]').forEach(item => {
+                item.addEventListener('click', () => {
+                    // Remove previous selection
+                    if (selectedResult) {
+                        selectedResult.classList.remove('selected');
+                    }
+                    
+                    // Select current item
+                    item.classList.add('selected');
+                    selectedResult = item;
+                    
+                    // Load file content
+                    const filePath = item.dataset.file;
+                    const lineNumber = parseInt(item.dataset.line);
+                    const basePath = document.getElementById('directory').value;
+                    
+                    loadFileContent(filePath, lineNumber);
+                });
+            });
+        }
+
+        async function loadFileContent(filePath, lineNumber) {
+            const contentDiv = document.getElementById('file-content');
+            const headerTitle = document.querySelector('.content-title');
+            const headerSubtitle = document.querySelector('.content-subtitle');
+            const basePath = document.getElementById('directory').value;
+            
+            // Update header
+            headerTitle.textContent = filePath.split('/').pop();
+            headerSubtitle.textContent = `${filePath} (line ${lineNumber})`;
+            
+            // Show loading
+            contentDiv.innerHTML = '<div class="loading">Loading file content...</div>';
+            
+            try {
+                const response = await fetch(
+                    `/file-content?file_path=${encodeURIComponent(filePath)}&line_number=${lineNumber}&context_lines=15&base_path=${encodeURIComponent(basePath)}`
+                );
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `Server error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                displayFileContent(data);
+                
+            } catch (err) {
+                console.error('Error loading file content:', err);
+                contentDiv.innerHTML = `<div class="error">Error loading file: ${err.message}</div>`;
+            }
+        }
+        
+        // Map file types to Prism language identifiers
+        function getPrismLanguage(fileType) {
+            const languageMap = {
+                'c': 'c',
+                'cpp': 'cpp',
+                'python': 'python',
+                'javascript': 'javascript',
+                'html': 'markup',
+                'css': 'css',
+                'json': 'json',
+                'markdown': 'markdown',
+                'text': 'text'
+            };
+            
+            return languageMap[fileType] || 'text';
+        }
+        
+        function displayFileContent(data) {
+            const contentDiv = document.getElementById('file-content');
+            
+            if (data.file_type === 'markdown') {
+                // Render markdown
+                const fullContent = data.context.map(line => line.content).join('\n');
+                const htmlContent = marked.parse(fullContent);
+                contentDiv.innerHTML = `<div class="markdown-content">${htmlContent}</div>`;
+            } else {
+                // For code files, first create a pre>code element for Prism
+                const prismLanguage = getPrismLanguage(data.file_type);
+                const codeContent = data.context.map(line => line.content).join('\n');
+                
+                // Create a temporary container for syntax highlighting
+                const tempContainer = document.createElement('div');
+                tempContainer.innerHTML = `<pre><code class="language-${prismLanguage}">${escapeHtml(codeContent)}</code></pre>`;
+                
+                // Apply Prism highlighting
+                Prism.highlightAllUnder(tempContainer);
+                
+                // Get the highlighted HTML
+                const highlightedCode = tempContainer.querySelector('code').innerHTML;
+                const highlightedLines = highlightedCode.split('\n');
+                
+                // Build the final display with line numbers and highlighting
+                let content = '';
+                data.context.forEach((line, index) => {
+                    const lineClass = line.is_match ? 'code-line highlight-line' : 'code-line';
+                    const highlightedContent = highlightedLines[index] || escapeHtml(line.content);
+                    
+                    content += `
+                        <div class="${lineClass}">
+                            <div class="code-line-number">${line.line_number}</div>
+                            <div class="code-line-content">${highlightedContent}</div>
+                        </div>
+                    `;
+                });
+                
+                contentDiv.innerHTML = content;
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         // Debounce function
