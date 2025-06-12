@@ -4,47 +4,42 @@
     <title>LiveGrep - Code Search</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
             margin: 0; 
             background: #f5f5f5;
         }
-        .container { 
-            width: 60vw; /* 60% width with 20% margins on each side */
-            margin: 0 auto; 
-            padding: 20px;
+        .main-container { 
+            display: flex;
             height: 100vh;
+        }
+        .left-panel, .right-panel { 
+            width: 50%;
+            height: 100%;
             box-sizing: border-box;
         }
-        .search-panel {
+        .left-panel { 
+            padding: 20px;
             background: white;
             border-radius: 8px;
-            padding: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            height: 100%;
         }
-        h1 { 
-            margin: 0 0 20px 0; 
-            color: #333;
-            font-size: 24px;
+        .right-panel { 
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
         }
-        input { 
-            width: 100%; 
-            padding: 12px; 
-            margin: 8px 0; 
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            font-size: 14px;
-            box-sizing: border-box;
+        .search-section {
+            margin-bottom: 20px;
         }
-        input:focus {
-            outline: none;
-            border-color: #0066cc;
-        }
-        #results { 
+        .results-section {
             flex: 1;
             border: 2px solid #e1e5e9; 
             border-radius: 6px;
@@ -290,54 +285,53 @@
 
         /* Responsive breakpoints - maintain centered layout */
         @media (max-width: 1024px) {
-            .container {
-                width: 70vw; /* Slightly wider on tablets but still centered */
+            .main-container {
+                flex-direction: column;
             }
-            
-            .modal-content {
-                width: 95vw;
-                height: 90vh;
+            .left-panel, .right-panel {
+                width: 100%;
             }
         }
 
         @media (max-width: 768px) {
-            .container {
-                width: 90vw; /* Use more width only on mobile for usability */
-                padding: 10px;
+            .main-container {
+                flex-direction: column;
             }
-            
-            .modal-content {
-                width: 98vw;
-                height: 95vh;
+            .left-panel, .right-panel {
+                width: 100%;
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="search-panel">
-            <h1>LiveGrep</h1>
-            <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
-            <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
-            <div id="results"></div>
+    <div class="main-container">
+        <!-- Left Panel: Search and Results -->
+        <div class="left-panel">
+            <div class="search-section">
+                <h1>LiveGrep</h1>
+                <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
+                <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
+            </div>
+            <div class="results-section">
+                <div id="results"></div>
+            </div>
         </div>
-    </div>
 
-    <!-- Modal for file content -->
-    <div id="modal-overlay" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">
-                    <div class="modal-file-info">
-                        <span id="modal-file-name">File Content</span>
-                        <span id="modal-file-type-badge" class="file-type-badge" style="display: none;">TEXT</span>
-                        <span id="modal-line-indicator" class="line-indicator" style="display: none;">Line 1</span>
+        <!-- Right Panel: Context Display -->
+        <div class="right-panel">
+            <div class="context-header">
+                <div class="context-title">
+                    <div class="context-file-info">
+                        <span id="context-file-name">File Context</span>
+                        <span id="context-file-type-badge" class="file-type-badge" style="display: none;">TEXT</span>
+                        <span id="context-line-indicator" class="line-indicator" style="display: none;">Line 1</span>
                     </div>
                 </div>
-                <button id="modal-close" class="modal-close" title="Close (ESC)">×</button>
             </div>
-            <div id="modal-body" class="modal-body">
-                <div class="loading">Loading file content...</div>
+            <div id="context-body" class="context-body">
+                <div class="empty-context">
+                    Click on a search result to view its context
+                </div>
             </div>
         </div>
     </div>

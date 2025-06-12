@@ -1,0 +1,286 @@
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  background: #f5f5f5;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main-container {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  height: 100vh;
+  gap: 0;
+}
+
+.left-panel {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #e1e5e9;
+}
+
+.search-section {
+  padding: 20px;
+  border-bottom: 2px solid #e1e5e9;
+  flex-shrink: 0;
+}
+
+.results-section {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.right-panel {
+  background: white;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.context-header {
+  background: #f8f9fa;
+  padding: 20px;
+  border-bottom: 2px solid #e1e5e9;
+  flex-shrink: 0;
+}
+
+.context-body {
+  flex: 1;
+  overflow: auto;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+h1 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 24px;
+}
+
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  border: 2px solid #e1e5e9;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: none;
+  border-color: #0066cc;
+}
+
+#results {
+  padding: 0;
+}
+
+.result-item {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  line-height: 1.4;
+}
+
+.result-item:hover {
+  background-color: #f8f9fa;
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-item.selected {
+  background-color: #e3f2fd;
+  border-left: 4px solid #2196f3;
+}
+
+.file-path {
+  color: #666;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.line-number {
+  color: #999;
+  margin-right: 8px;
+}
+
+.highlight {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.info {
+  color: #666;
+  font-style: italic;
+  padding: 12px;
+  text-align: center;
+}
+
+.error {
+  color: #d32f2f;
+  padding: 12px;
+  background: #ffebee;
+  border-radius: 4px;
+  margin: 10px;
+}
+
+.context-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.context-file-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.file-type-badge {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.line-indicator {
+  background: #fff3cd;
+  color: #856404;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.code-line {
+  display: flex;
+  padding: 2px 0;
+  border-left: 4px solid transparent;
+}
+
+.code-line.highlight-line {
+  background-color: #fff3cd;
+  border-left-color: #ffc107;
+}
+
+.code-line-number {
+  color: #999;
+  width: 60px;
+  text-align: right;
+  padding-right: 16px;
+  padding-left: 16px;
+  user-select: none;
+  flex-shrink: 0;
+  background: #f8f9fa;
+  border-right: 1px solid #e1e5e9;
+}
+
+.code-line-content {
+  flex: 1;
+  white-space: pre;
+  overflow-x: auto;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.markdown-content {
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  padding: 20px;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  color: #333;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.markdown-content code {
+  background: #f6f8fa;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
+}
+
+.markdown-content pre {
+  background: #f6f8fa;
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.empty-context {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999;
+  font-style: italic;
+  text-align: center;
+  padding: 40px;
+}
+
+/* Prism.js customizations */
+pre[class*="language-"] {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  font-size: 13px;
+}
+
+code[class*="language-"] {
+  font-size: 13px;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  .main-container {
+    grid-template-columns: 50% 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: 60% 40%;
+  }
+
+  .left-panel {
+    border-right: none;
+    border-bottom: 2px solid #e1e5e9;
+  }
+
+  .search-section {
+    padding: 15px;
+  }
+
+  .context-header {
+    padding: 15px;
+  }
+}

@@ -6,33 +6,11 @@ const debounceDelay = 300
 const resultLimit = 50
 let selectedResult = null
 
-// Modal functionality
-const modal = document.getElementById("modal-overlay")
-const modalClose = document.getElementById("modal-close")
-const modalBody = document.getElementById("modal-body")
-
-function openModal() {
-  modal.classList.add("show")
-  document.body.style.overflow = "hidden"
-}
-
-function closeModal() {
-  modal.classList.remove("show")
-  document.body.style.overflow = "auto"
-}
-
-// Close modal on click outside or close button
-modalClose.addEventListener("click", closeModal)
-modal.addEventListener("click", (e) => {
-  if (e.target === modal) closeModal()
-})
-
-// Close modal on ESC key
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && modal.classList.contains("show")) {
-    closeModal()
-  }
-})
+// Context panel elements
+const contextBody = document.getElementById("context-body")
+const contextFileNameEl = document.getElementById("context-file-name")
+const contextFileTypeBadge = document.getElementById("context-file-type-badge")
+const contextLineIndicator = document.getElementById("context-line-indicator")
 
 async function performSearch(isFullSearch = false) {
   const path = document.getElementById("directory").value
@@ -41,6 +19,8 @@ async function performSearch(isFullSearch = false) {
 
   if (!path || !pattern) {
     resultsDiv.innerHTML = ""
+    // Clear context panel
+    clearContextPanel()
     return
   }
 
@@ -95,6 +75,7 @@ function displayResults(data) {
 
   if (!data.results || data.results.length === 0) {
     resultsDiv.innerHTML = '<div class="info">No results found</div>'
+    clearContextPanel()
     return
   }
 
@@ -139,33 +120,33 @@ function displayResults(data) {
       item.classList.add("selected")
       selectedResult = item
 
-      // Load file content in modal
+      // Load file content in right panel
       const filePath = item.dataset.file
       const lineNumber = Number.parseInt(item.dataset.line)
-      const basePath = document.getElementById("directory").value
 
-      loadFileContentInModal(filePath, lineNumber)
+      loadFileContentInPanel(filePath, lineNumber)
     })
   })
 }
 
-async function loadFileContentInModal(filePath, lineNumber) {
-  const modalFileNameEl = document.getElementById("modal-file-name")
-  const modalFileTypeBadge = document.getElementById("modal-file-type-badge")
-  const modalLineIndicator = document.getElementById("modal-line-indicator")
+function clearContextPanel() {
+  contextBody.innerHTML = '<div class="empty-context">Click on a search result to view its context</div>'
+  contextFileNameEl.textContent = "File Context"
+  contextFileTypeBadge.style.display = "none"
+  contextLineIndicator.style.display = "none"
+}
+
+async function loadFileContentInPanel(filePath, lineNumber) {
   const basePath = document.getElementById("directory").value
 
-  // Open modal immediately
-  openModal()
-
-  // Update modal header
+  // Update context header
   const fileName = filePath.split("/").pop()
-  modalFileNameEl.textContent = `${fileName} - ${filePath}`
-  modalLineIndicator.textContent = `Line ${lineNumber}`
-  modalLineIndicator.style.display = "inline-block"
+  contextFileNameEl.textContent = `${fileName} - ${filePath}`
+  contextLineIndicator.textContent = `Line ${lineNumber}`
+  contextLineIndicator.style.display = "inline-block"
 
-  // Show loading in modal body
-  modalBody.innerHTML = '<div class="loading">Loading file content...</div>'
+  // Show loading in context body
+  contextBody.innerHTML = '<div class="loading">Loading file content...</div>'
 
   try {
     const response = await fetch(
@@ -180,14 +161,14 @@ async function loadFileContentInModal(filePath, lineNumber) {
     const data = await response.json()
 
     // Update file type badge
-    modalFileTypeBadge.textContent = data.file_type.toUpperCase()
-    modalFileTypeBadge.style.display = "inline-block"
+    contextFileTypeBadge.textContent = data.file_type.toUpperCase()
+    contextFileTypeBadge.style.display = "inline-block"
 
-    displayFileContentInModal(data)
+    displayFileContentInPanel(data)
   } catch (err) {
     console.error("Error loading file content:", err)
-    modalBody.innerHTML = `<div class="error">Error loading file: ${err.message}</div>`
-    modalFileTypeBadge.style.display = "none"
+    contextBody.innerHTML = `<div class="error">Error loading file: ${err.message}</div>`
+    contextFileTypeBadge.style.display = "none"
   }
 }
 
@@ -243,15 +224,14 @@ async function applySyntaxHighlighting(container, language) {
   }
 }
 
-async function displayFileContentInModal(data) {
+async function displayFileContentInPanel(data) {
   const marked = window.marked // Declare marked variable
-  const Prism = window.Prism // Declare Prism variable
 
   if (data.file_type === "markdown") {
     // Render markdown
     const fullContent = data.context.map((line) => line.content).join("\n")
     const htmlContent = marked.parse(fullContent)
-    modalBody.innerHTML = `<div class="markdown-content">${htmlContent}</div>`
+    contextBody.innerHTML = `<div class="markdown-content">${htmlContent}</div>`
   } else {
     // For code files, first create a pre>code element for Prism
     const prismLanguage = getPrismLanguage(data.file_type)
@@ -282,17 +262,17 @@ async function displayFileContentInModal(data) {
             `
     })
 
-    modalBody.innerHTML = content
+    contextBody.innerHTML = content
 
     // Scroll to the highlighted line
     setTimeout(() => {
-      const highlightedLine = modalBody.querySelector(".highlight-line")
+      const highlightedLine = contextBody.querySelector(".highlight-line")
       if (highlightedLine) {
-        const containerHeight = modalBody.clientHeight
+        const containerHeight = contextBody.clientHeight
         const lineTop = highlightedLine.offsetTop
         const targetScroll = Math.max(0, lineTop - containerHeight / 2)
 
-        modalBody.scrollTo({
+        contextBody.scrollTo({
           top: targetScroll,
           behavior: "smooth",
         })
