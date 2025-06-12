@@ -32,9 +32,13 @@ async function performSearch(isFullSearch = false) {
 
   try {
     const limit = isFullSearch ? 0 : resultLimit
-    const response = await fetch(`/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`, {
-      signal: abortController.signal,
-    })
+    // Fixed: Added the limit parameter to the URL
+    const response = await fetch(
+      `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}&limit=${limit}`,
+      {
+        signal: abortController.signal,
+      },
+    )
 
     if (!response.ok) {
       const error = await response.json()
