@@ -301,6 +301,108 @@
                 width: 100%;
             }
         }
+
+        /* Call Hierarchy Modal Styles */
+        .hierarchy-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 1001;
+            backdrop-filter: blur(2px);
+        }
+        
+        .hierarchy-modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        .hierarchy-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 85vw;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .hierarchy-modal-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .hierarchy-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .hierarchy-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .hierarchy-modal-close:hover {
+            background: #e1e5e9;
+            color: #333;
+        }
+        
+        .hierarchy-modal-body {
+            flex: 1;
+            overflow: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Context Menu Styles */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1002;
+        }
+        
+        .context-menu-item {
+            padding: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
@@ -333,6 +435,29 @@
                     Click on a search result to view its context
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Call Hierarchy Modal -->
+    <div id="hierarchy-modal-overlay" class="hierarchy-modal-overlay">
+        <div class="hierarchy-modal-content">
+            <div class="hierarchy-modal-header">
+                <div class="hierarchy-modal-title">
+                    <span>Call Hierarchy: </span>
+                    <span id="hierarchy-function-name" class="function-name"></span>
+                </div>
+                <button id="hierarchy-modal-close" class="hierarchy-modal-close" title="Close (ESC)">×</button>
+            </div>
+            <div id="hierarchy-modal-body" class="hierarchy-modal-body">
+                <div class="loading">Loading call hierarchy...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" id="show-call-hierarchy">
+            Show Call Hierarchy
         </div>
     </div>
 

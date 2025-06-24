@@ -12,6 +12,80 @@ const contextFileNameEl = document.getElementById("context-file-name")
 const contextFileTypeBadge = document.getElementById("context-file-type-badge")
 const contextLineIndicator = document.getElementById("context-line-indicator")
 
+// Call hierarchy modal elements
+const hierarchyModal = document.getElementById("hierarchy-modal-overlay")
+const hierarchyModalClose = document.getElementById("hierarchy-modal-close")
+const hierarchyModalBody = document.getElementById("hierarchy-modal-body")
+const hierarchyFunctionName = document.getElementById("hierarchy-function-name")
+
+// Context menu elements
+const contextMenu = document.getElementById("context-menu")
+const showCallHierarchyItem = document.getElementById("show-call-hierarchy")
+
+// Context menu state
+let contextMenuTarget = null
+let selectedFunctionName = null
+
+// Modal functionality for call hierarchy
+function openHierarchyModal() {
+  hierarchyModal.classList.add("show")
+  document.body.style.overflow = "hidden"
+}
+
+function closeHierarchyModal() {
+  hierarchyModal.classList.remove("show")
+  document.body.style.overflow = "auto"
+}
+
+// Close modal on click outside or close button
+hierarchyModalClose.addEventListener("click", closeHierarchyModal)
+hierarchyModal.addEventListener("click", (e) => {
+  if (e.target === hierarchyModal) closeHierarchyModal()
+})
+
+// Close modal on ESC key
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    if (hierarchyModal.classList.contains("show")) {
+      closeHierarchyModal()
+    }
+    hideContextMenu()
+  }
+})
+
+// Context menu functionality
+function showContextMenu(x, y, functionName) {
+  selectedFunctionName = functionName
+  contextMenu.style.left = `${x}px`
+  contextMenu.style.top = `${y}px`
+  contextMenu.style.display = "block"
+
+  // Enable/disable menu items based on context
+  const isValidFunction = functionName && functionName.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)
+  showCallHierarchyItem.classList.toggle("disabled", !isValidFunction)
+}
+
+function hideContextMenu() {
+  contextMenu.style.display = "none"
+  contextMenuTarget = null
+  selectedFunctionName = null
+}
+
+// Hide context menu when clicking elsewhere
+document.addEventListener("click", (e) => {
+  if (!contextMenu.contains(e.target)) {
+    hideContextMenu()
+  }
+})
+
+// Context menu item handlers
+showCallHierarchyItem.addEventListener("click", (e) => {
+  if (!showCallHierarchyItem.classList.contains("disabled") && selectedFunctionName) {
+    loadCallHierarchy(selectedFunctionName)
+    hideContextMenu()
+  }
+})
+
 async function performSearch(isFullSearch = false) {
   const path = document.getElementById("directory").value
   const pattern = document.getElementById("pattern").value
@@ -268,6 +342,11 @@ async function displayFileContentInPanel(data) {
 
     contextBody.innerHTML = content
 
+    // Add right-click context menu to function names in C/C++ files
+    if (data.file_type === "c" || data.file_type === "cpp") {
+      addContextMenuToFunctions()
+    }
+
     // Scroll to the highlighted line
     setTimeout(() => {
       const highlightedLine = contextBody.querySelector(".highlight-line")
@@ -283,6 +362,246 @@ async function displayFileContentInPanel(data) {
       }
     }, 100)
   }
+}
+
+function addContextMenuToFunctions() {
+  // Add right-click handlers to detect function names
+  const codeLines = contextBody.querySelectorAll(".code-line-content")
+
+  codeLines.forEach((line) => {
+    line.addEventListener("contextmenu", (e) => {
+      e.preventDefault()
+
+      // Try to extract function name from the clicked position
+      const selection = window.getSelection()
+      let functionName = null
+
+      // If there's a selection, use it
+      if (selection.toString().trim()) {
+        const selectedText = selection.toString().trim()
+        if (selectedText.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+          functionName = selectedText
+        }
+      } else {
+        // Try to find function name near the click position
+        const text = line.textContent
+        const clickX = e.clientX
+        const rect = line.getBoundingClientRect()
+        const relativeX = clickX - rect.left
+
+        // Rough estimation of character position
+        const charWidth = 7 // approximate character width in monospace font
+        const charPosition = Math.floor(relativeX / charWidth)
+
+        // Extract word at position
+        const words = text.split(/\s+/)
+        let currentPos = 0
+
+        for (const word of words) {
+          if (currentPos <= charPosition && charPosition <= currentPos + word.length) {
+            // Check if this looks like a function name
+            const cleanWord = word.replace(/[^\w]/g, "")
+            if (cleanWord.match(/^[a-zA-Z_][a-zA-Z0-9_]*$/)) {
+              functionName = cleanWord
+              break
+            }
+          }
+          currentPos += word.length + 1 // +1 for space
+        }
+      }
+
+      if (functionName) {
+        showContextMenu(e.clientX, e.clientY, functionName)
+      }
+    })
+  })
+}
+
+async function loadCallHierarchy(functionName) {
+  const basePath = document.getElementById("directory").value
+
+  if (!basePath) {
+    alert("Please set a directory path first")
+    return
+  }
+
+  // Open modal and show loading
+  openHierarchyModal()
+  hierarchyFunctionName.textContent = functionName
+  hierarchyModalBody.innerHTML = '<div class="loading">Building recursive call hierarchy...</div>'
+
+  try {
+    const response = await fetch(
+      `/call-hierarchy?function_name=${encodeURIComponent(functionName)}&base_path=${encodeURIComponent(basePath)}&max_depth=10`,
+    )
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || `Server error: ${response.status}`)
+    }
+
+    const data = await response.json()
+    displayCallHierarchy(data)
+  } catch (err) {
+    console.error("Error loading call hierarchy:", err)
+    hierarchyModalBody.innerHTML = `<div class="error">Error loading call hierarchy: ${err.message}</div>`
+  }
+}
+
+function displayCallHierarchy(data) {
+  if (!data.callers || data.callers.length === 0) {
+    hierarchyModalBody.innerHTML = `
+      <div class="no-callers">
+        <p>No callers found for function <strong>${data.function_name}</strong></p>
+        <p>This function might be:</p>
+        <ul style="text-align: left; display: inline-block;">
+          <li>A main function or entry point</li>
+          <li>Called only from external libraries</li>
+          <li>Not found in the current directory</li>
+        </ul>
+      </div>
+    `
+    return
+  }
+
+  const totalNodes = countTotalNodes(data)
+
+  let content = `
+    <div class="hierarchy-stats">
+      Found <strong>${data.total_callers}</strong> direct caller${data.total_callers !== 1 ? "s" : ""} 
+      for function <strong>${data.function_name}</strong> 
+      (<strong>${totalNodes}</strong> total nodes in hierarchy tree)
+    </div>
+    
+    <div class="hierarchy-tree">
+      <div class="hierarchy-node root">
+        <span class="function-name">${data.function_name}</span>
+        <span class="file-location">Target Function</span>
+        <span class="depth-indicator">Root</span>
+      </div>
+  `
+
+  content += renderHierarchyNodes(data.callers, 0)
+  content += "</div>"
+
+  hierarchyModalBody.innerHTML = content
+
+  // Add click handlers and expand/collapse functionality
+  addHierarchyInteractivity()
+}
+
+function countTotalNodes(data) {
+  let count = 1 // Root node
+
+  function countRecursive(callers) {
+    for (const caller of callers) {
+      count++
+      if (caller.callers && caller.callers.length > 0) {
+        countRecursive(caller.callers)
+      }
+    }
+  }
+
+  if (data.callers) {
+    countRecursive(data.callers)
+  }
+
+  return count
+}
+
+function renderHierarchyNodes(callers, depth) {
+  let content = ""
+
+  callers.forEach((caller, index) => {
+    const isLast = index === callers.length - 1
+    const hasChildren = caller.callers && caller.callers.length > 0
+    const isRecursive = caller.is_recursive
+    const nodeId = `node-${depth}-${index}`
+
+    let nodeClasses = "hierarchy-node caller"
+    if (hasChildren) nodeClasses += " expandable"
+    if (isRecursive) nodeClasses += " recursive"
+
+    content += `
+      <div class="${nodeClasses}" 
+           data-file="${caller.file_path}" 
+           data-line="${caller.line_number}"
+           data-node-id="${nodeId}"
+           title="Click to view in context">
+        <div>
+          ${hasChildren ? `<span class="expand-toggle" data-target="${nodeId}">+</span>` : '<span style="width: 24px; display: inline-block;"></span>'}
+          <span class="function-name ${isRecursive ? "recursive" : ""}">${caller.caller_function}</span>
+          <span class="file-location">${caller.file_path}:${caller.line_number}</span>
+          <span class="depth-indicator">L${depth + 1}</span>
+          ${isRecursive ? '<span class="depth-indicator" style="background: #f44336; color: white;">REC</span>' : ""}
+        </div>
+        <div class="code-preview">${escapeHtml(caller.code_line)}</div>
+        ${
+          hasChildren
+            ? `<div class="caller-children" data-children="${nodeId}">
+          ${renderHierarchyNodes(caller.callers, depth + 1)}
+        </div>`
+            : ""
+        }
+      </div>
+    `
+  })
+
+  return content
+}
+
+function addHierarchyInteractivity() {
+  // Add click handlers to caller nodes for navigation
+  const callerNodes = hierarchyModalBody.querySelectorAll(".hierarchy-node.caller")
+  callerNodes.forEach((node) => {
+    node.addEventListener("click", (e) => {
+      // Don't navigate if clicking on expand toggle
+      if (e.target.classList.contains("expand-toggle")) {
+        return
+      }
+
+      const filePath = node.dataset.file
+      const lineNumber = Number.parseInt(node.dataset.line)
+
+      if (filePath && lineNumber) {
+        // Close hierarchy modal
+        closeHierarchyModal()
+
+        // Load the file content in the context panel
+        loadFileContentInPanel(filePath, lineNumber)
+      }
+    })
+  })
+
+  // Add expand/collapse functionality
+  const expandToggles = hierarchyModalBody.querySelectorAll(".expand-toggle")
+  expandToggles.forEach((toggle) => {
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation()
+
+      const targetId = toggle.dataset.target
+      const childrenContainer = hierarchyModalBody.querySelector(`[data-children="${targetId}"]`)
+      const parentNode = toggle.closest(".hierarchy-node")
+
+      if (childrenContainer) {
+        const isExpanded = childrenContainer.classList.contains("expanded")
+
+        if (isExpanded) {
+          // Collapse
+          childrenContainer.classList.remove("expanded")
+          toggle.textContent = "+"
+          toggle.classList.remove("expanded")
+          parentNode.classList.remove("expanded")
+        } else {
+          // Expand
+          childrenContainer.classList.add("expanded")
+          toggle.textContent = "−"
+          toggle.classList.add("expanded")
+          parentNode.classList.add("expanded")
+        }
+      }
+    })
+  })
 }
 
 function escapeHtml(text) {
