@@ -6,21 +6,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
     <link rel="stylesheet" href="/static/styles.css">
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
-            margin: 0; 
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
             background: #f5f5f5;
         }
-        .main-container { 
+        .main-container {
             display: flex;
             height: 100vh;
         }
-        .left-panel, .right-panel { 
+        .left-panel, .right-panel {
             width: 50%;
             height: 100%;
             box-sizing: border-box;
         }
-        .left-panel { 
+        .left-panel {
             padding: 20px;
             background: white;
             border-radius: 8px;
@@ -28,7 +28,7 @@
             display: flex;
             flex-direction: column;
         }
-        .right-panel { 
+        .right-panel {
             padding: 20px;
             background: white;
             border-radius: 8px;
@@ -41,14 +41,14 @@
         }
         .results-section {
             flex: 1;
-            border: 2px solid #e1e5e9; 
+            border: 2px solid #e1e5e9;
             border-radius: 6px;
-            overflow-y: auto; 
+            overflow-y: auto;
             margin-top: 10px;
         }
-        .result-item { 
-            padding: 12px; 
-            border-bottom: 1px solid #eee; 
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
             font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
             font-size: 13px;
             cursor: pointer;
@@ -74,21 +74,21 @@
             color: #999;
             margin-right: 8px;
         }
-        .highlight { 
+        .highlight {
             background-color: #fff3cd;
             color: #856404;
             padding: 1px 2px;
             border-radius: 2px;
         }
-        .info { 
-            color: #666; 
-            font-style: italic; 
-            padding: 12px; 
+        .info {
+            color: #666;
+            font-style: italic;
+            padding: 12px;
             text-align: center;
         }
-        .error { 
-            color: #d32f2f; 
-            padding: 12px; 
+        .error {
+            color: #d32f2f;
+            padding: 12px;
             background: #ffebee;
             border-radius: 4px;
             margin: 10px 0;
@@ -106,14 +106,14 @@
             z-index: 1000;
             backdrop-filter: blur(2px);
         }
-        
+
         .modal-overlay.show {
             display: flex;
             align-items: center;
             justify-content: center;
             animation: fadeIn 0.2s ease-out;
         }
-        
+
         .modal-content {
             background: white;
             border-radius: 12px;
@@ -125,7 +125,7 @@
             overflow: hidden;
             animation: slideIn 0.3s ease-out;
         }
-        
+
         .modal-header {
             background: #f8f9fa;
             padding: 20px;
@@ -135,7 +135,7 @@
             align-items: center;
             flex-shrink: 0;
         }
-        
+
         .modal-title {
             font-size: 18px;
             font-weight: 600;
@@ -145,13 +145,13 @@
             align-items: center;
             gap: 12px;
         }
-        
+
         .modal-file-info {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
+
         .file-type-badge {
             background: #e3f2fd;
             color: #1976d2;
@@ -161,7 +161,7 @@
             font-weight: 500;
             text-transform: uppercase;
         }
-        
+
         .line-indicator {
             background: #fff3cd;
             color: #856404;
@@ -170,7 +170,7 @@
             font-size: 10px;
             font-weight: 500;
         }
-        
+
         .modal-close {
             background: none;
             border: none;
@@ -186,12 +186,12 @@
             width: 40px;
             height: 40px;
         }
-        
+
         .modal-close:hover {
             background: #e1e5e9;
             color: #333;
         }
-        
+
         .modal-body {
             flex: 1;
             overflow: auto;
@@ -199,7 +199,7 @@
             font-size: 13px;
             line-height: 1.5;
         }
-        
+
         .code-line {
             display: flex;
             padding: 2px 0;
@@ -254,24 +254,24 @@
             padding: 40px;
             color: #666;
         }
-        
+
         /* Animations */
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
         }
-        
+
         @keyframes slideIn {
-            from { 
+            from {
                 opacity: 0;
                 transform: scale(0.9) translateY(-20px);
             }
-            to { 
+            to {
                 opacity: 1;
                 transform: scale(1) translateY(0);
             }
         }
-        
+
         /* Prism.js customizations */
         pre[class*="language-"] {
             margin: 0;
@@ -314,14 +314,14 @@
             z-index: 1001;
             backdrop-filter: blur(2px);
         }
-        
+
         .hierarchy-modal-overlay.show {
             display: flex;
             align-items: center;
             justify-content: center;
             animation: fadeIn 0.2s ease-out;
         }
-        
+
         .hierarchy-modal-content {
             background: white;
             border-radius: 12px;
@@ -333,7 +333,7 @@
             overflow: hidden;
             animation: slideIn 0.3s ease-out;
         }
-        
+
         .hierarchy-modal-header {
             background: #f8f9fa;
             padding: 20px;
@@ -343,7 +343,7 @@
             align-items: center;
             flex-shrink: 0;
         }
-        
+
         .hierarchy-modal-title {
             font-size: 18px;
             font-weight: 600;
@@ -353,7 +353,7 @@
             align-items: center;
             gap: 12px;
         }
-        
+
         .hierarchy-modal-close {
             background: none;
             border: none;
@@ -369,12 +369,12 @@
             width: 40px;
             height: 40px;
         }
-        
+
         .hierarchy-modal-close:hover {
             background: #e1e5e9;
             color: #333;
         }
-        
+
         .hierarchy-modal-body {
             flex: 1;
             overflow: auto;
@@ -393,13 +393,13 @@
             display: none;
             z-index: 1002;
         }
-        
+
         .context-menu-item {
             padding: 12px;
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        
+
         .context-menu-item:hover {
             background-color: #f8f9fa;
         }
@@ -474,8 +474,11 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <!-- Load Marked.js for markdown parsing -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
-    
+    <!-- Load Mermaid.js for diagram rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
+
     <!-- Load our script file -->
     <script src="/static/script.js"></script>
 </body>

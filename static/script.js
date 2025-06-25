@@ -26,6 +26,32 @@ const showCallHierarchyItem = document.getElementById("show-call-hierarchy")
 let contextMenuTarget = null
 let selectedFunctionName = null
 
+// Initialize Mermaid
+document.addEventListener("DOMContentLoaded", () => {
+  const mermaid = window.mermaid // Declare mermaid variable
+  if (mermaid) {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: "default",
+      securityLevel: "loose",
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontSize: 14,
+      flowchart: {
+        useMaxWidth: true,
+        htmlLabels: true,
+        curve: "basis",
+      },
+      sequence: {
+        useMaxWidth: true,
+        wrap: true,
+      },
+      gantt: {
+        useMaxWidth: true,
+      },
+    })
+  }
+})
+
 // Modal functionality for call hierarchy
 function openHierarchyModal() {
   hierarchyModal.classList.add("show")
@@ -302,6 +328,66 @@ async function applySyntaxHighlighting(container, language) {
   }
 }
 
+// Process Mermaid diagrams in markdown content
+async function processMermaidDiagrams(container) {
+  const mermaid = window.mermaid // Declare mermaid variable
+  if (!mermaid) {
+    console.warn("Mermaid not loaded")
+    return
+  }
+
+  const mermaidBlocks = container.querySelectorAll("code.language-mermaid, pre code.language-mermaid")
+
+  for (let i = 0; i < mermaidBlocks.length; i++) {
+    const block = mermaidBlocks[i]
+    const mermaidCode = block.textContent || block.innerText
+
+    try {
+      // Create a unique ID for this diagram
+      const diagramId = `mermaid-diagram-${Date.now()}-${i}`
+
+      // Create container for the diagram
+      const diagramContainer = document.createElement("div")
+      diagramContainer.className = "mermaid"
+      diagramContainer.id = diagramId
+      diagramContainer.textContent = mermaidCode
+
+      // Replace the code block with the diagram container
+      const parentPre = block.closest("pre")
+      if (parentPre) {
+        parentPre.parentNode.replaceChild(diagramContainer, parentPre)
+      } else {
+        block.parentNode.replaceChild(diagramContainer, block)
+      }
+
+      // Render the diagram
+      await mermaid.run({
+        nodes: [diagramContainer],
+      })
+    } catch (error) {
+      console.error("Error rendering Mermaid diagram:", error)
+
+      // Show error message
+      const errorDiv = document.createElement("div")
+      errorDiv.className = "mermaid-error"
+      errorDiv.innerHTML = `
+        <strong>Mermaid Diagram Error:</strong><br>
+        ${escapeHtml(error.message)}<br><br>
+        <strong>Diagram Code:</strong><br>
+        <pre>${escapeHtml(mermaidCode)}</pre>
+      `
+
+      // Replace the problematic block
+      const parentPre = block.closest("pre")
+      if (parentPre) {
+        parentPre.parentNode.replaceChild(errorDiv, parentPre)
+      } else {
+        block.parentNode.replaceChild(errorDiv, block)
+      }
+    }
+  }
+}
+
 async function displayFileContentInPanel(data) {
   const marked = window.marked // Declare marked variable
 
@@ -309,7 +395,18 @@ async function displayFileContentInPanel(data) {
     // Render markdown
     const fullContent = data.context.map((line) => line.content).join("\n")
     const htmlContent = marked.parse(fullContent)
-    contextBody.innerHTML = `<div class="markdown-content">${htmlContent}</div>`
+
+    // Create container and set HTML
+    const markdownContainer = document.createElement("div")
+    markdownContainer.className = "markdown-content"
+    markdownContainer.innerHTML = htmlContent
+
+    // Clear context body and add markdown container
+    contextBody.innerHTML = ""
+    contextBody.appendChild(markdownContainer)
+
+    // Process Mermaid diagrams
+    await processMermaidDiagrams(markdownContainer)
   } else {
     // For code files, first create a pre>code element for Prism
     const prismLanguage = getPrismLanguage(data.file_type)

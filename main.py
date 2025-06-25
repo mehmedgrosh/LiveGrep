@@ -140,8 +140,12 @@ async def get_file_content(file_path: str, line_number: int, context_lines: int 
         
         # Calculate context range
         total_lines = len(lines)
-        start_line = max(1, line_number - context_lines)
-        end_line = min(total_lines, line_number + context_lines)
+        # NOTE: Currently we are fetching all the file content.
+        # If there are performance issues - we can reduce the context using the parameter context_lines
+        # start_line = max(1, line_number - context_lines)
+        # end_line = min(total_lines, line_number + context_lines)
+        start_line = 1
+        end_line = total_lines
         
         # Extract context lines
         context = []
