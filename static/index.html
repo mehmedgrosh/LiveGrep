@@ -1,129 +1,485 @@
-<!-- static/index.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Silver Search</title>
+    <title>LiveGrep - Code Search</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
+    <link rel="stylesheet" href="/static/styles.css">
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        .container { max-width: 800px; margin: 0 auto; }
-        input, #results { width: 100%; padding: 8px; margin: 5px 0; }
-        #results { border: 1px solid #ccc; min-height: 300px; overflow-y: auto; }
-        .result-item { 
-            padding: 5px; 
-            border-bottom: 1px solid #eee; 
-            font-family: monospace;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background: #f5f5f5;
         }
-        .highlight { color: #d00; font-weight: bold; }
-        .info { color: #666; font-style: italic; padding: 5px; }
-        .error { color: #d00; padding: 5px; }
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+        .left-panel, .right-panel {
+            width: 50%;
+            height: 100%;
+            box-sizing: border-box;
+        }
+        .left-panel {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .right-panel {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .search-section {
+            margin-bottom: 20px;
+        }
+        .results-section {
+            flex: 1;
+            border: 2px solid #e1e5e9;
+            border-radius: 6px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        .result-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            line-height: 1.4;
+        }
+        .result-item:hover {
+            background-color: #f8f9fa;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-item.selected {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+        }
+        .file-path {
+            color: #666;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        .line-number {
+            color: #999;
+            margin-right: 8px;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 1px 2px;
+            border-radius: 2px;
+        }
+        .info {
+            color: #666;
+            font-style: italic;
+            padding: 12px;
+            text-align: center;
+        }
+        .error {
+            color: #d32f2f;
+            padding: 12px;
+            background: #ffebee;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 85vw;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .modal-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .modal-file-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-type-badge {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .line-indicator {
+            background: #fff3cd;
+            color: #856404;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .modal-close:hover {
+            background: #e1e5e9;
+            color: #333;
+        }
+
+        .modal-body {
+            flex: 1;
+            overflow: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .code-line {
+            display: flex;
+            padding: 2px 0;
+            border-left: 4px solid transparent;
+        }
+        .code-line.highlight-line {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+        }
+        .code-line-number {
+            color: #999;
+            width: 60px;
+            text-align: right;
+            padding-right: 16px;
+            padding-left: 16px;
+            user-select: none;
+            flex-shrink: 0;
+            background: #f8f9fa;
+            border-right: 1px solid #e1e5e9;
+        }
+        .code-line-content {
+            flex: 1;
+            white-space: pre;
+            overflow-x: auto;
+            padding-left: 16px;
+            padding-right: 16px;
+        }
+        .markdown-content {
+            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+        }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+            color: #333;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        .markdown-content code {
+            background: #f6f8fa;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+        }
+        .markdown-content pre {
+            background: #f6f8fa;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Prism.js customizations */
+        pre[class*="language-"] {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 13px;
+        }
+        code[class*="language-"] {
+            font-size: 13px;
+        }
+
+        /* Responsive breakpoints - maintain centered layout */
+        @media (max-width: 1024px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+            .left-panel, .right-panel {
+                width: 100%;
+            }
+        }
+
+        /* Call Hierarchy Modal Styles */
+        .hierarchy-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 1001;
+            backdrop-filter: blur(2px);
+        }
+
+        .hierarchy-modal-overlay.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .hierarchy-modal-content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 85vw;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .hierarchy-modal-header {
+            background: #f8f9fa;
+            padding: 20px;
+            border-bottom: 2px solid #e1e5e9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .hierarchy-modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hierarchy-modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+            padding: 8px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .hierarchy-modal-close:hover {
+            background: #e1e5e9;
+            color: #333;
+        }
+
+        .hierarchy-modal-body {
+            flex: 1;
+            overflow: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Context Menu Styles */
+        .context-menu {
+            position: absolute;
+            background: white;
+            border: 1px solid #e1e5e9;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1002;
+        }
+
+        .context-menu-item {
+            padding: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Silver Search</h1>
-        <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
-        <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
-        <div id="results"></div>
+    <div class="main-container">
+        <!-- Left Panel: Search and Results -->
+        <div class="left-panel">
+            <div class="search-section">
+                <h1>LiveGrep</h1>
+                <input type="text" id="directory" placeholder="Absolute directory path (e.g., /home/user/docs)">
+                <input type="text" id="pattern" placeholder="Search pattern (supports regex) - Press Enter for full search">
+            </div>
+            <div class="results-section">
+                <div id="results"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel: Context Display -->
+        <div class="right-panel">
+            <div class="context-header">
+                <div class="context-title">
+                    <div class="context-file-info">
+                        <span id="context-file-name">File Context</span>
+                        <span id="context-file-type-badge" class="file-type-badge" style="display: none;">TEXT</span>
+                        <span id="context-line-indicator" class="line-indicator" style="display: none;">Line 1</span>
+                    </div>
+                </div>
+            </div>
+            <div id="context-body" class="context-body">
+                <div class="empty-context">
+                    Click on a search result to view its context
+                </div>
+            </div>
+        </div>
     </div>
 
-    <script>
-        let abortController = null;
-        let currentSearchType = 'quick';
-        const debounceDelay = 300;
-        const resultLimit = 50;
+    <!-- Call Hierarchy Modal -->
+    <div id="hierarchy-modal-overlay" class="hierarchy-modal-overlay">
+        <div class="hierarchy-modal-content">
+            <div class="hierarchy-modal-header">
+                <div class="hierarchy-modal-title">
+                    <span>Call Hierarchy: </span>
+                    <span id="hierarchy-function-name" class="function-name"></span>
+                </div>
+                <button id="hierarchy-modal-close" class="hierarchy-modal-close" title="Close (ESC)">×</button>
+            </div>
+            <div id="hierarchy-modal-body" class="hierarchy-modal-body">
+                <div class="loading">Loading call hierarchy...</div>
+            </div>
+        </div>
+    </div>
 
-        async function performSearch(isFullSearch = false) {
-            const path = document.getElementById('directory').value;
-            const pattern = document.getElementById('pattern').value;
-            const resultsDiv = document.getElementById('results');
-            
-            if (!path || !pattern) {
-                resultsDiv.innerHTML = '';
-                return;
-            }
+    <!-- Context Menu -->
+    <div id="context-menu" class="context-menu">
+        <div class="context-menu-item" id="show-call-hierarchy">
+            Show Call Hierarchy
+        </div>
+    </div>
 
-            if (abortController) abortController.abort();
-            abortController = new AbortController();
-            
-            currentSearchType = isFullSearch ? 'full' : 'quick';
-            resultsDiv.innerHTML = '<div class="info">Searching... (press Enter for full results)</div>';
-            
-            try {
-                const limit = isFullSearch ? 0 : resultLimit;
-                const response = await fetch(
-                    `/search?path=${encodeURIComponent(path)}&pattern=${encodeURIComponent(pattern)}`,
-                    { signal: abortController.signal }
-                );
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || `Server error: ${response.status}`);
-                }
-                
-                const data = await response.json();
-                
-                // Ensure we have results array
-                if (!data.results || !Array.isArray(data.results)) {
-                    throw new Error("Invalid response format from server");
-                }
-                
-                displayResults(data);
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                    console.error('Search error:', err);
-                    resultsDiv.innerHTML = `<div class="error">${err.message}</div>`;
-                }
-            }
-        }
-        
-        function displayResults(data) {
-            const resultsDiv = document.getElementById('results');
-            const pattern = document.getElementById('pattern').value;
-            
-            if (!data.results || data.results.length === 0) {
-                resultsDiv.innerHTML = '<div class="info">No results found</div>';
-                return;
-            }
-            
-            let content = '';
-            const escapedPattern = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(${escapedPattern})`, 'gi');
-            
-            data.results.forEach(line => {
-                const highlighted = line.replace(regex, '<span class="highlight">$1</span>');
-                content += `<div class="result-item">${highlighted}</div>`;
-            });
-            
-            if (data.limited && currentSearchType === 'quick') {
-                content += `<div class="info">Showing first ${resultLimit} results. Press Enter for full search.</div>`;
-            } else if (currentSearchType === 'full') {
-                content += `<div class="info">Showing all ${data.results.length} results</div>`;
-            }
-            
-            resultsDiv.innerHTML = content;
-        }
+    <!-- Load Prism.js core first -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <!-- Load clike first as it's a dependency for C/C++ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+    <!-- Load all language components explicitly -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <!-- Load Marked.js for markdown parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+    <!-- Load Mermaid.js for diagram rendering -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.6.1/mermaid.min.js"></script>
 
-        // Debounce function
-        let timeout;
-        function debouncedSearch() {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => performSearch(false), debounceDelay);
-        }
-
-        // Event listeners
-        document.getElementById('pattern').addEventListener('input', debouncedSearch);
-        document.getElementById('directory').addEventListener('input', debouncedSearch);
-        
-        // Enter key for full search
-        document.getElementById('pattern').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                clearTimeout(timeout);
-                performSearch(true);
-            }
-        });
-    </script>
+    <!-- Load our script file -->
+    <script src="/static/script.js"></script>
 </body>
 </html>
