@@ -1,6 +1,8 @@
-# main.py
+"""LiveGrep - Code Search Application with Call Hierarchy."""
+
 import os
 import asyncio
+import re
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -11,15 +13,21 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
+    """Serve the main HTML page."""
     return HTMLResponse(open("static/index.html").read())
 
 
 @app.get("/search")
 async def search_files(path: str, pattern: str, limit: int = 50):
+    """Search for files matching the given pattern."""
     if not os.path.isabs(path) or not os.path.exists(path):
         return JSONResponse(
             status_code=400,
-            content={"error": "Invalid directory path", "results": [], "limited": False}
+            content={
+                "error": "Invalid directory path",
+                "results": [],
+                "limited": False
+            }
         )
 
     try:
@@ -78,13 +86,22 @@ async def search_files(path: str, pattern: str, limit: int = 50):
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": str(e), "results": [], "limited": False}
+            content={
+                "error": str(e),
+                "results": [],
+                "limited": False
+            }
         )
 
 
 @app.get("/file-content")
-async def get_file_content(file_path: str, line_number: int, context_lines: int = 10, base_path: str = None):
-    """Get file content with context around a specific line number"""
+async def get_file_content(
+    file_path: str,
+    line_number: int,
+    context_lines: int = 10,
+    base_path: str = None
+):
+    """Get file content with context around a specific line number."""
     try:
         # If file_path is relative and we have a base_path, make it absolute
         if base_path and not os.path.isabs(file_path):
@@ -111,26 +128,7 @@ async def get_file_content(file_path: str, line_number: int, context_lines: int 
 
         # Determine file type based on extension
         file_extension = os.path.splitext(full_path)[1].lower()
-        file_type = "text"
-
-        if file_extension in ['.c']:
-            file_type = "c"
-        elif file_extension in ['.h', '.hpp']:
-            file_type = "c"  # Use C highlighting for header files
-        elif file_extension in ['.cpp', '.cc', '.cxx']:
-            file_type = "cpp"
-        elif file_extension in ['.py']:
-            file_type = "python"
-        elif file_extension in ['.js', '.jsx']:
-            file_type = "javascript"
-        elif file_extension in ['.md', '.markdown']:
-            file_type = "markdown"
-        elif file_extension in ['.html', '.htm']:
-            file_type = "html"
-        elif file_extension in ['.css']:
-            file_type = "css"
-        elif file_extension in ['.json']:
-            file_type = "json"
+        file_type = _get_file_type(file_extension)
 
         # Read the file
         with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
@@ -138,12 +136,8 @@ async def get_file_content(file_path: str, line_number: int, context_lines: int 
 
         # Calculate context range
         total_lines = len(lines)
-        # NOTE: Currently we are fetching all the file content.
-        # If there are performance issues - we can reduce the context using the parameter context_lines
-        # start_line = max(1, line_number - context_lines)
-        # end_line = min(total_lines, line_number + context_lines)
-        start_line = 1
-        end_line = total_lines
+        start_line = max(1, line_number - context_lines)
+        end_line = min(total_lines, line_number + context_lines)
 
         # Extract context lines
         context = []
@@ -170,9 +164,35 @@ async def get_file_content(file_path: str, line_number: int, context_lines: int 
         )
 
 
+def _get_file_type(file_extension: str) -> str:
+    """Determine file type based on extension."""
+    type_mapping = {
+        '.c': 'c',
+        '.h': 'c',
+        '.hpp': 'c',
+        '.cpp': 'cpp',
+        '.cc': 'cpp',
+        '.cxx': 'cpp',
+        '.py': 'python',
+        '.js': 'javascript',
+        '.jsx': 'javascript',
+        '.md': 'markdown',
+        '.markdown': 'markdown',
+        '.html': 'html',
+        '.htm': 'html',
+        '.css': 'css',
+        '.json': 'json'
+    }
+    return type_mapping.get(file_extension, 'text')
+
+
 @app.get("/call-hierarchy")
-async def get_call_hierarchy(function_name: str, base_path: str, max_depth: int = 10):
-    """Get recursive call hierarchy for a function using cscope and cflow"""
+async def get_call_hierarchy(
+    function_name: str,
+    base_path: str,
+    max_depth: int = 10
+):
+    """Get recursive call hierarchy for a function using cscope and cflow."""
     try:
         if not os.path.isabs(base_path) or not os.path.exists(base_path):
             return JSONResponse(
@@ -184,7 +204,9 @@ async def get_call_hierarchy(function_name: str, base_path: str, max_depth: int 
         await build_cscope_database(base_path)
 
         # Build recursive call hierarchy
-        hierarchy = await build_recursive_hierarchy(function_name, base_path, max_depth)
+        hierarchy = await build_recursive_hierarchy(
+            function_name, base_path, max_depth
+        )
 
         return hierarchy
 
@@ -196,7 +218,7 @@ async def get_call_hierarchy(function_name: str, base_path: str, max_depth: int 
 
 
 async def build_cscope_database(base_path: str):
-    """Build cscope database for the given directory"""
+    """Build cscope database for the given directory."""
     try:
         # Find all C/C++ files recursively
         find_cmd = [
@@ -244,8 +266,14 @@ async def build_cscope_database(base_path: str):
         print(f"Cscope database build failed: {e}")
 
 
-async def build_recursive_hierarchy(function_name: str, base_path: str, max_depth: int, visited=None, current_depth=0):
-    """Build recursive call hierarchy like cflow"""
+async def build_recursive_hierarchy(
+    function_name: str,
+    base_path: str,
+    max_depth: int,
+    visited=None,
+    current_depth=0
+):
+    """Build recursive call hierarchy like cflow."""
     if visited is None:
         visited = set()
 
@@ -279,7 +307,8 @@ async def build_recursive_hierarchy(function_name: str, base_path: str, max_dept
 
         # Recursively find callers of this caller
         sub_hierarchy = await build_recursive_hierarchy(
-            caller_function, base_path, max_depth, visited.copy(), current_depth + 1
+            caller_function, base_path, max_depth, visited.copy(),
+            current_depth + 1
         )
 
         # Merge the information
@@ -301,8 +330,84 @@ async def build_recursive_hierarchy(function_name: str, base_path: str, max_dept
     }
 
 
+def is_function_declaration(code_line: str, function_name: str) -> bool:
+    """Check if a line contains a function declaration (not a call)."""
+    # Remove leading/trailing whitespace
+    line = code_line.strip()
+
+    # Skip empty lines and comments
+    if not line or line.startswith('//') or line.startswith('/*') or \
+       line.startswith('*'):
+        return True
+
+    # Common patterns for function declarations (to exclude):
+    declaration_patterns = [
+        # Function prototypes ending with semicolon
+        rf'\b{re.escape(function_name)}\s*$$[^)]*$$\s*;',
+        # Function declarations in header files
+        rf'^\s*(?:extern\s+)?(?:static\s+)?(?:inline\s+)?'
+        rf'(?:\w+\s+)*{re.escape(function_name)}\s*$$[^)]*$$\s*;',
+        # Function pointer declarations
+        rf'$$\s*\*\s*{re.escape(function_name)}\s*$$',
+        # typedef function declarations
+        rf'typedef\s+.*{re.escape(function_name)}',
+    ]
+
+    for pattern in declaration_patterns:
+        if re.search(pattern, line, re.IGNORECASE):
+            return True
+
+    # Check if it's a function definition
+    definition_patterns = [
+        rf'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*'
+        rf'{re.escape(function_name)}\s*$$[^)]*$$\s*\{{',
+        rf'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*'
+        rf'{re.escape(function_name)}\s*$$[^)]*$$\s*$',
+    ]
+
+    for pattern in definition_patterns:
+        if re.search(pattern, line, re.IGNORECASE):
+            return True  # This is a definition, not a call
+
+    return False
+
+
+def is_function_call(code_line: str, function_name: str) -> bool:
+    """Check if a line contains an actual function call."""
+    line = code_line.strip()
+
+    # Skip empty lines and comments
+    if not line or line.startswith('//') or line.startswith('/*') or \
+       line.startswith('*'):
+        return False
+
+    # Skip preprocessor directives
+    if line.startswith('#'):
+        return False
+
+    # Look for function call patterns
+    call_patterns = [
+        # Direct function call: function_name(
+        rf'\b{re.escape(function_name)}\s*\(',
+        # Function call with assignment: var = function_name(
+        rf'=\s*{re.escape(function_name)}\s*\(',
+        # Function call in expression: ... function_name( ...
+        rf'[^\w]{re.escape(function_name)}\s*\(',
+        # Function call at start of line
+        rf'^\s*{re.escape(function_name)}\s*\(',
+    ]
+
+    for pattern in call_patterns:
+        if re.search(pattern, line):
+            # Additional check: make sure it's not a declaration
+            if not is_function_declaration(line, function_name):
+                return True
+
+    return False
+
+
 async def find_function_callers(function_name: str, base_path: str):
-    """Find all callers of a function"""
+    """Find all callers of a function, excluding declarations."""
     callers = []
 
     try:
@@ -329,12 +434,22 @@ async def find_function_callers(function_name: str, base_path: str):
                         line_number = parts[2]
                         code_line = parts[3]
 
+                        # Skip if this is a function declaration/definition
+                        if is_function_declaration(code_line, function_name):
+                            continue
+
+                        # Skip if this doesn't look like a function call
+                        if not is_function_call(code_line, function_name):
+                            continue
+
                         # Make file path relative to base_path
                         if file_path.startswith(base_path):
                             file_path = os.path.relpath(file_path, base_path)
 
                         # Extract actual caller function name from context
-                        caller_func = extract_caller_function(function_context, code_line)
+                        caller_func = extract_caller_function(
+                            function_context, code_line
+                        )
 
                         callers.append({
                             "file_path": file_path,
@@ -354,38 +469,42 @@ async def find_function_callers(function_name: str, base_path: str):
     return callers
 
 
-def extract_caller_function(function_context: str, code_line: str):
-    """Extract the actual caller function name from cscope output"""
+def extract_caller_function(function_context: str, code_line: str) -> str:
+    """Extract the actual caller function name from cscope output."""
     # If function_context looks like a function name, use it
-    if function_context and function_context != "<global>" and function_context.replace("_", "").replace(".", "").isalnum():
+    if function_context and function_context != "<global>" and \
+       function_context.replace("_", "").replace(".", "").isalnum():
         return function_context
 
     # Try to extract function name from the code line
-    # Look for patterns like "function_name(" in the code
-    import re
-
     # Pattern to match function definitions
-    func_def_pattern = r'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*(\w+)\s*$$[^)]*$$\s*\{'
+    func_def_pattern = (
+        r'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*'
+        r'(\w+)\s*$$[^)]*$$\s*\{'
+    )
     match = re.match(func_def_pattern, code_line)
     if match:
         return match.group(1)
 
-    # If we can't determine the caller function, return the context or "unknown"
-    return function_context if function_context and function_context != "<global>" else "unknown"
+    # If we can't determine the caller function, return the context
+    return function_context if function_context and \
+        function_context != "<global>" else "unknown"
 
 
 async def grep_function_callers(function_name: str, base_path: str):
-    """Fallback method using grep to find function callers"""
+    """Fallback method using grep to find function callers."""
     callers = []
 
     try:
-        # Use grep to find function calls
+        # Use grep to find function calls (not declarations)
         pattern = f"{function_name}\\s*\\("
 
         grep_cmd = [
             "grep", "-rn", "--include=*.c", "--include=*.cpp",
-            "--include=*.cc", "--include=*.cxx", "--include=*.h",
-            "--include=*.hpp", "-E", pattern, base_path
+            "--include=*.cc", "--include=*.cxx",
+            # Exclude header files to avoid declarations
+            "--exclude=*.h", "--exclude=*.hpp",
+            "-E", pattern, base_path
         ]
 
         grep_proc = await asyncio.create_subprocess_exec(
@@ -405,12 +524,22 @@ async def grep_function_callers(function_name: str, base_path: str):
                         line_number = parts[1]
                         code_line = parts[2]
 
+                        # Skip if this is a function declaration/definition
+                        if is_function_declaration(code_line, function_name):
+                            continue
+
+                        # Skip if this doesn't look like a function call
+                        if not is_function_call(code_line, function_name):
+                            continue
+
                         # Make file path relative to base_path
                         if file_path.startswith(base_path):
                             file_path = os.path.relpath(file_path, base_path)
 
                         # Try to determine the caller function
-                        caller_func = await find_containing_function(file_path, int(line_number), base_path)
+                        caller_func = await find_containing_function(
+                            file_path, int(line_number), base_path
+                        )
 
                         callers.append({
                             "file_path": file_path,
@@ -426,17 +555,24 @@ async def grep_function_callers(function_name: str, base_path: str):
     return callers
 
 
-async def find_containing_function(file_path: str, line_number: int, base_path: str):
-    """Find which function contains the given line number"""
+async def find_containing_function(
+    file_path: str,
+    line_number: int,
+    base_path: str
+) -> str:
+    """Find which function contains the given line number."""
     try:
-        full_path = os.path.join(base_path, file_path) if not os.path.isabs(file_path) else file_path
+        full_path = os.path.join(base_path, file_path) if not \
+            os.path.isabs(file_path) else file_path
 
         with open(full_path, 'r', encoding='utf-8', errors='ignore') as f:
             lines = f.readlines()
 
         # Look backwards from the line to find the containing function
-        import re
-        func_pattern = r'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*(\w+)\s*$$[^)]*$$\s*\{'
+        func_pattern = (
+            r'^\s*(?:static\s+)?(?:inline\s+)?(?:\w+\s+)*'
+            r'(\w+)\s*$$[^)]*$$\s*\{'
+        )
 
         for i in range(min(line_number - 1, len(lines) - 1), -1, -1):
             line = lines[i].strip()
@@ -448,6 +584,7 @@ async def find_containing_function(file_path: str, line_number: int, base_path: 
 
     except Exception:
         return "unknown"
+
 
 if __name__ == "__main__":
     import uvicorn

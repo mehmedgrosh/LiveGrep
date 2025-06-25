@@ -550,12 +550,7 @@ function displayCallHierarchy(data) {
     hierarchyModalBody.innerHTML = `
       <div class="no-callers">
         <p>No callers found for function <strong>${data.function_name}</strong></p>
-        <p>This function might be:</p>
-        <ul style="text-align: left; display: inline-block;">
-          <li>A main function or entry point</li>
-          <li>Called only from external libraries</li>
-          <li>Not found in the current directory</li>
-        </ul>
+        <p>This function might be a main function, entry point, or not found in the current directory.</p>
       </div>
     `
     return
@@ -565,16 +560,14 @@ function displayCallHierarchy(data) {
 
   let content = `
     <div class="hierarchy-stats">
-      Found <strong>${data.total_callers}</strong> direct caller${data.total_callers !== 1 ? "s" : ""} 
-      for function <strong>${data.function_name}</strong> 
-      (<strong>${totalNodes}</strong> total nodes in hierarchy tree)
+      <strong>${data.function_name}</strong> is called by <strong>${data.total_callers}</strong> function${data.total_callers !== 1 ? "s" : ""} 
+      (${totalNodes} total references)
     </div>
     
     <div class="hierarchy-tree">
       <div class="hierarchy-node root">
         <span class="function-name">${data.function_name}</span>
-        <span class="file-location">Target Function</span>
-        <span class="depth-indicator">Root</span>
+        <span class="root-label">Target Function</span>
       </div>
   `
 
@@ -610,7 +603,6 @@ function renderHierarchyNodes(callers, depth) {
   let content = ""
 
   callers.forEach((caller, index) => {
-    const isLast = index === callers.length - 1
     const hasChildren = caller.callers && caller.callers.length > 0
     const isRecursive = caller.is_recursive
     const nodeId = `node-${depth}-${index}`
@@ -619,20 +611,24 @@ function renderHierarchyNodes(callers, depth) {
     if (hasChildren) nodeClasses += " expandable"
     if (isRecursive) nodeClasses += " recursive"
 
+    // Clean up the file path - show only filename if it's long
+    const fileName = caller.file_path.split("/").pop()
+    const displayPath = caller.file_path.length > 40 ? `.../${fileName}` : caller.file_path
+
     content += `
       <div class="${nodeClasses}" 
            data-file="${caller.file_path}" 
            data-line="${caller.line_number}"
            data-node-id="${nodeId}"
-           title="Click to view in context">
-        <div>
-          ${hasChildren ? `<span class="expand-toggle" data-target="${nodeId}">+</span>` : '<span style="width: 24px; display: inline-block;"></span>'}
+           title="Click to view ${caller.file_path}:${caller.line_number}">
+        <div class="hierarchy-main">
+          ${hasChildren ? `<span class="expand-toggle" data-target="${nodeId}">▶</span>` : '<span class="expand-spacer"></span>'}
           <span class="function-name ${isRecursive ? "recursive" : ""}">${caller.caller_function}</span>
-          <span class="file-location">${caller.file_path}:${caller.line_number}</span>
-          <span class="depth-indicator">L${depth + 1}</span>
-          ${isRecursive ? '<span class="depth-indicator" style="background: #f44336; color: white;">REC</span>' : ""}
+          ${isRecursive ? '<span class="recursive-badge">RECURSIVE</span>' : ""}
         </div>
-        <div class="code-preview">${escapeHtml(caller.code_line)}</div>
+        <div class="hierarchy-location">
+          <span class="file-info">${displayPath}:${caller.line_number}</span>
+        </div>
         ${
           hasChildren
             ? `<div class="caller-children" data-children="${nodeId}">
@@ -657,15 +653,19 @@ function addHierarchyInteractivity() {
         return
       }
 
-      const filePath = node.dataset.file
-      const lineNumber = Number.parseInt(node.dataset.line)
+      const filePath = node.getAttribute("data-file")
+      const lineNumber = Number.parseInt(node.getAttribute("data-line"))
+
+      console.log("Hierarchy click:", filePath, lineNumber) // Debug log
 
       if (filePath && lineNumber) {
-        // Close hierarchy modal
+        // Close hierarchy modal first
         closeHierarchyModal()
 
-        // Load the file content in the context panel
-        loadFileContentInPanel(filePath, lineNumber)
+        // Small delay to ensure modal is closed before loading content
+        setTimeout(() => {
+          loadFileContentInPanel(filePath, lineNumber)
+        }, 100)
       }
     })
   })
@@ -686,13 +686,13 @@ function addHierarchyInteractivity() {
         if (isExpanded) {
           // Collapse
           childrenContainer.classList.remove("expanded")
-          toggle.textContent = "+"
+          toggle.textContent = "▶"
           toggle.classList.remove("expanded")
           parentNode.classList.remove("expanded")
         } else {
           // Expand
           childrenContainer.classList.add("expanded")
-          toggle.textContent = "−"
+          toggle.textContent = "▼"
           toggle.classList.add("expanded")
           parentNode.classList.add("expanded")
         }

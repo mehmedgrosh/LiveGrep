@@ -355,41 +355,55 @@ input:focus {
   padding: 20px;
 }
 
+.hierarchy-stats {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  color: #333;
+  font-size: 14px;
+  border-left: 4px solid #2196f3;
+}
+
 .hierarchy-tree {
   font-family: "SF Mono", Monaco, "Cascadia Code", monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.4;
 }
 
 .hierarchy-node {
-  margin: 2px 0;
-  padding: 8px 12px;
-  border-radius: 6px;
+  margin: 4px 0;
+  padding: 12px 16px;
+  border-radius: 8px;
   transition: all 0.2s;
   cursor: pointer;
   border-left: 3px solid transparent;
-  position: relative;
+  background: #fafafa;
 }
 
 .hierarchy-node:hover {
-  background-color: #f8f9fa;
+  background-color: #f0f0f0;
   transform: translateX(2px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .hierarchy-node.root {
-  background-color: #e3f2fd;
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
   border-left-color: #2196f3;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   cursor: default;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .hierarchy-node.root:hover {
   transform: none;
+  box-shadow: none;
 }
 
 .hierarchy-node.caller {
-  background-color: #f9f9f9;
   border-left-color: #4caf50;
   margin-left: 0;
 }
@@ -399,32 +413,47 @@ input:focus {
 }
 
 .hierarchy-node.expanded {
-  background-color: #fff3e0;
+  background-color: #fff8e1;
+  border-left-color: #ffc107;
 }
 
 .hierarchy-node.recursive {
   border-left-color: #f44336;
-  background-color: #ffebee;
+  background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+}
+
+.hierarchy-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.hierarchy-location {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 24px;
 }
 
 .expand-toggle {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 16px;
   height: 16px;
-  margin-right: 8px;
   cursor: pointer;
   user-select: none;
-  font-weight: bold;
+  font-size: 10px;
   color: #666;
-  text-align: center;
-  line-height: 16px;
-  border-radius: 3px;
   background: #e0e0e0;
-  font-size: 12px;
+  border-radius: 3px;
+  transition: all 0.2s;
 }
 
 .expand-toggle:hover {
   background: #d0d0d0;
+  color: #333;
 }
 
 .expand-toggle.expanded {
@@ -432,54 +461,50 @@ input:focus {
   color: white;
 }
 
+.expand-spacer {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
 .function-name {
   color: #1976d2;
   font-weight: 600;
+  font-size: 14px;
 }
 
 .function-name.recursive {
   color: #f44336;
 }
 
-.file-location {
-  color: #666;
-  font-size: 11px;
-  margin-left: 8px;
-}
-
-.code-preview {
-  color: #333;
-  margin-top: 4px;
-  padding: 4px 8px;
-  background: #f6f8fa;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: pre-wrap;
-  word-break: break-all;
-}
-
-.hierarchy-stats {
-  background: #f8f9fa;
-  padding: 12px;
-  border-radius: 6px;
-  margin-bottom: 16px;
-  color: #666;
-  font-size: 12px;
-}
-
-.depth-indicator {
-  color: #999;
-  font-size: 10px;
-  background: #e0e0e0;
+.recursive-badge {
+  background: #f44336;
+  color: white;
   padding: 2px 6px;
   border-radius: 10px;
-  margin-left: 8px;
+  font-size: 9px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.root-label {
+  color: #666;
+  font-size: 12px;
+  font-weight: normal;
+}
+
+.file-info {
+  color: #666;
+  font-size: 11px;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .caller-children {
   margin-left: 24px;
   border-left: 2px solid #e0e0e0;
-  padding-left: 12px;
+  padding-left: 16px;
   margin-top: 8px;
   display: none;
 }
@@ -490,9 +515,16 @@ input:focus {
 
 .no-callers {
   text-align: center;
-  color: #999;
-  font-style: italic;
-  padding: 40px;
+  color: #666;
+  padding: 40px 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+.no-callers p {
+  margin: 12px 0;
+  line-height: 1.5;
 }
 
 /* Context menu styles */
